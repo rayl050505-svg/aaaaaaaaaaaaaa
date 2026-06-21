@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DesafioHV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="bg-mesh"></div>
+<div class="bg-blob bg-blob-1"></div>
+<div class="bg-blob bg-blob-2"></div>
+<div class="bg-blob bg-blob-3"></div>
+<canvas id="particles"></canvas>
+
+<!-- TUTORIAL -->
+<div id="tutorial" style="display:none">
+  <div class="tut-box">
+    <div class="tut-logo">Desafio<span>HV</span> ⭐</div>
+    <div class="tut-tagline">Organizá y dominá tus 24 horas del día</div>
+    <div class="tut-steps">
+      <div class="tut-step"><div class="tut-icon">➕</div><div class="tut-step-text"><strong>Creá tu rutina</strong><span>Agregá actividades con nombre, horario y color.</span></div></div>
+      <div class="tut-step"><div class="tut-icon">🕐</div><div class="tut-step-text"><strong>Marcá al llegar la hora</strong><span>Solo podés marcar cuando llegó el horario.</span></div></div>
+      <div class="tut-step"><div class="tut-icon">✕</div><div class="tut-step-text"><strong>Registrá lo que no hiciste</strong><span>Las actividades saltadas bajan tu porcentaje del día.</span></div></div>
+      <div class="tut-step"><div class="tut-icon">🏪</div><div class="tut-step-text"><strong>Comprá en la tienda</strong><span>Ganás ⭐ completando actividades. Usálas para comprar recuperadores de racha y escudos.</span></div></div>
+    </div>
+    <button class="tut-btn" onclick="closeTutorial()">¡Empezar mi rutina!</button>
+  </div>
+</div>
+
+<div id="drawer-overlay" onclick="closeDrawer()"></div>
+
+<!-- DRAWER -->
+<div id="drawer">
+  <button class="drawer-close-btn" onclick="closeDrawer()">✕</button>
+  <div class="drawer-header">
+    <div class="drawer-logo">Desafio<span>HV</span></div>
+    <div class="drawer-tagline">Dominá tus 24 horas ⭐</div>
+  </div>
+  <nav class="drawer-nav">
+    <button class="drawer-nav-item active" id="dnav-hoy" onclick="switchTab('hoy');closeDrawer()"><span class="drawer-nav-icon">🏠</span> Hoy</button>
+    <button class="drawer-nav-item" id="dnav-hist" onclick="switchTab('hist');closeDrawer()"><span class="drawer-nav-icon">📅</span> Historial</button>
+    <button class="drawer-nav-item" id="dnav-profile" onclick="switchTab('profile');closeDrawer()"><span class="drawer-nav-icon">👤</span> Perfil & Logros</button>
+    <button class="drawer-nav-item" id="dnav-store" onclick="switchTab('store');closeDrawer()"><span class="drawer-nav-icon">🏪</span> Tienda</button>
+  </nav>
+  <div class="drawer-footer">DesafioHV · Tu rutina diaria</div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title">Editar actividad</div><button class="modal-close" onclick="closeEdit()">✕</button></div>
+    <div class="field"><label>Nombre</label><input type="text" id="e-name" maxlength="40"/></div>
+    <div class="form-row">
+      <div class="field"><label>Hora inicio</label><input type="time" id="e-start"/><div class="field-error" id="e-overlap-err" style="display:none"></div></div>
+      <div class="field"><label>Hora fin</label><input type="time" id="e-end"/></div>
+    </div>
+    <div class="field"><label>Color</label><div class="color-row" id="edit-color-row"></div></div>
+    <div class="form-actions"><button class="btn-cancel" onclick="closeEdit()">Cancelar</button><button class="btn-save" onclick="saveEdit()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title">Eliminar actividad</div>
+    <div class="confirm-msg" id="confirm-msg">¿Estás seguro?</div>
+    <div class="confirm-actions">
+      <button class="btn-confirm-cancel" onclick="closeConfirm()">Cancelar</button>
+      <button class="btn-confirm-ok" id="confirm-ok-btn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <button class="menu-btn" onclick="openDrawer()" aria-label="Menú"><span></span><span></span><span></span></button>
+  <div class="top-bar-title" id="top-bar-title">Hoy</div>
+  <div class="top-bar-date" id="top-bar-date"></div>
+  <div class="tb-badges">
+    <div class="streak-pill hidden" id="streak-pill" onclick="switchTab('profile');closeDrawer()" title="Tu racha actual">🔥 <span id="sp-count">0</span></div>
+    <div class="star-badge" id="star-badge" onclick="switchTab('store');closeDrawer()" title="Estrellas · ir a Tienda">⭐ <span id="sb-count">0</span></div>
+  </div>
+</div>
+
+<!-- HOY VIEW -->
+<div id="main">
+  <div class="clock-section">
+    <div class="clock-wrapper"><svg id="clock-svg" viewBox="0 0 240 240"></svg></div>
+  </div>
+  <div class="streak-banner hidden" id="streak-banner">
+    <div class="streak-flame" id="streak-flame">🔥</div>
+    <div class="streak-text"><div class="streak-title" id="streak-title">Racha activa</div><div class="streak-sub">días consecutivos al 100%</div></div>
+    <div class="streak-val" id="streak-val">0</div>
+  </div>
+  <div class="shield-banner hidden" id="shield-banner">
+    <span style="font-size:1.3rem">🛡️</span>
+    <div style="flex:1"><div style="font-size:0.82rem;font-weight:700;color:var(--teal)">Escudo activo hoy</div><div style="font-size:0.68rem;color:var(--text2);margin-top:1px">Tu racha está protegida aunque no llegues al 100%</div></div>
+  </div>
+  <div class="prog-wrap">
+    <div class="prog-header"><span>Progreso del día</span><span class="prog-pct" id="prog-pct">0%</span></div>
+    <div class="prog-bg"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+  </div>
+  <div class="sec-title">Actividades</div>
+  <div id="act-list"></div>
+  <div style="margin-top:0.5rem">
+    <button class="add-toggle" id="add-toggle-btn" onclick="toggleForm()"><span style="font-size:1.1rem">＋</span> Agregar actividad</button>
+    <div class="add-form" id="add-form">
+      <div class="form-title">Nueva actividad</div>
+      <div class="field"><label>Nombre</label><input type="text" id="f-name" placeholder="ej: Trotar, Estudiar, Gym..." maxlength="40"/></div>
+      <div class="form-row">
+        <div class="field"><label>Hora inicio</label><input type="time" id="f-start" value="07:00"/><div class="field-error" id="f-overlap-err" style="display:none"></div></div>
+        <div class="field"><label>Hora fin</label><input type="time" id="f-end" value="08:00"/></div>
+      </div>
+      <div class="field"><label>Color</label><div class="color-row" id="color-row"></div></div>
+      <div class="form-actions"><button class="btn-cancel" onclick="toggleForm()">Cancelar</button><button class="btn-save" onclick="saveActivity()">Guardar</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORIAL VIEW -->
+<div id="hist-view">
+  <div class="hist-header"><div class="hist-title">Historial</div><div class="hist-subtitle" id="hist-subtitle"></div></div>
+  <div class="cal-section">
+    <div class="cal-header">
+      <div class="cal-month-title" id="cal-month-title"></div>
+      <div style="display:flex;gap:6px;">
+        <button class="cal-nav-btn" onclick="changeMonth(-1)">‹ Ant.</button>
+        <button class="cal-nav-btn" onclick="changeMonth(1)">Sig. ›</button>
+      </div>
+    </div>
+    <div class="cal-weekdays" id="cal-weekdays"></div>
+    <div class="cal-days" id="cal-days"></div>
+    <div class="cal-legend">
+      <div class="cal-legend-item"><div class="cal-leg-box" style="background:rgba(255,255,255,0.04)"></div>Sin datos</div>
+      <div class="cal-legend-item"><div class="cal-leg-box" style="background:rgba(127,119,221,0.14)"></div>1–30%</div>
+      <div class="cal-legend-item"><div class="cal-leg-box" style="background:rgba(127,119,221,0.3)"></div>31–69%</div>
+      <div class="cal-legend-item"><div class="cal-leg-box" style="background:rgba(127,119,221,0.55)"></div>70–99%</div>
+      <div class="cal-legend-item"><div class="cal-leg-box" style="background:rgba(29,158,117,0.28)"></div>100%</div>
+      <div class="cal-legend-item"><div class="cal-leg-box" style="background:rgba(226,75,75,0.12)"></div>Saltado</div>
+    </div>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-label">Últimos 14 días</div>
+    <div class="mini-chart" id="mini-chart"></div>
+  </div>
+  <div class="sec-title">Detalle por día</div>
+  <div id="hist-list"></div>
+</div>
+
+<!-- PROFILE VIEW -->
+<div id="profile-view">
+  <div class="profile-hero">
+    <div class="profile-avatar">🏆</div>
+    <div class="profile-name">Mi Rutina</div>
+    <div class="profile-sub">DesafioHV · Tracker personal</div>
+    <div class="profile-stats">
+      <div class="prof-stat"><div class="prof-stat-val" id="ps-streak">0</div><div class="prof-stat-lbl">Racha</div></div>
+      <div class="prof-stat"><div class="prof-stat-val" id="ps-total">0</div><div class="prof-stat-lbl">Días 100%</div></div>
+      <div class="prof-stat"><div class="prof-stat-val" id="ps-acts">0</div><div class="prof-stat-lbl">Actividades</div></div>
+    </div>
+  </div>
+  <div class="sec-title">Logros</div>
+  <div class="rewards-grid" id="rewards-grid"></div>
+</div>
+
+<!-- STORE VIEW -->
+<div id="store-view">
+  <div class="store-header">
+    <div class="store-title">Tienda</div>
+    <div class="store-sub">Comprá power-ups con tus estrellas</div>
+  </div>
+  <div class="store-balance">
+    <div class="store-balance-icon">⭐</div>
+    <div class="store-balance-text">
+      <div class="store-balance-lbl">Tus estrellas disponibles</div>
+      <div class="store-balance-val" id="store-stars">0</div>
+    </div>
+  </div>
+  <div class="sec-title">Power-ups</div>
+  <div class="store-grid" id="store-grid"></div>
+  <div class="sec-title">Historial de compras</div>
+  <div class="store-history" id="store-history"><div style="font-size:0.8rem;color:var(--text3);text-align:center;padding:1rem">No hay compras todavía</div></div>
+</div>
+
+<div id="cal-tooltip"><div class="tt-date"></div><div class="tt-pct"></div><div class="tt-acts"></div></div>
+<canvas id="confetti-canvas"></canvas>
+<div id="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
